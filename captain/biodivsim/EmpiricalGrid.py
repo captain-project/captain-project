@@ -194,7 +194,7 @@ class EmpiricalGrid:
     def subsample_sp_h(self, disturbance_matrix, seed=0):
         if seed:
             np.random.seed(seed)
-        if self._species_sensitivities:
+        if self._species_sensitivities is not None:
             species_sensitivity = self._species_sensitivities
         else:
             species_sensitivity = np.random.random(self._n_species)

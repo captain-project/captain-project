@@ -413,6 +413,7 @@ def extract_features(
             diff_from_min_threshold = np.ones(1)
             while np.min(diff_from_min_threshold) > 0:
                 min_pop_requirement = min_pop_requirement * 1.01
+                min_pop_requirement[min_pop_requirement<1] += 1 # ensure that there is a minimum of one individual per species to protect
                 popsize_protected_sp = pop_sizes[protected_species_list]
                 diff_from_min_threshold = (
                     popsize_protected_sp - min_pop_requirement[protected_species_list]
