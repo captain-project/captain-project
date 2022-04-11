@@ -68,10 +68,14 @@ def build_empirical_env(
 
     # add a minimum cost per unit and rescale
     if np.min(cost_array) == 0:
-        min_cost = 0.01 * np.min(
-            cost_array[cost_array > 0]
-        )  # 1% of the cheapest cell with a cost
+        if np.max(cost_array) == 0:
+            min_cost = 1
+        else:
+            min_cost = 0.01 * np.min(
+                cost_array[cost_array > 0]
+            )  # 1% of the cheapest cell with a cost
         cost_array[cost_array == 0] = min_cost
+
     # rescale cost
     cost_array = cost_array / np.mean(cost_array)
     total_cost = np.sum(cost_array)
