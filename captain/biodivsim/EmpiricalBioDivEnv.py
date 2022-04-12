@@ -287,9 +287,10 @@ class BioDivEnvEmpirical:
         self.runMode = runMode
     
     def set_conservation_target(self, protect_fraction):
-        self.min_pop_requirement = (
+        tmp = (
                 self.bioDivGrid.individualsPerSpecies() * protect_fraction
         )
+        self.min_pop_requirement = np.ceil(tmp)
         self.protect_fraction = protect_fraction
     
     def reset_w_seed(self, seed):
