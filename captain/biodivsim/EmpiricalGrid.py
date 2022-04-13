@@ -185,10 +185,12 @@ class EmpiricalGrid:
         # TODO: add binomial draw here based on disturbance matrix?
         self._counter += 1
 
-    def update_protection_matrix(self, protection_matrix=None, indx=None):
+    def update_protection_matrix(self, protection_matrix=None, indx=None, reset_matrix=False):
         if protection_matrix:
             self._protection_matrix = protection_matrix
         if indx:
+            if reset_matrix:
+                self._protection_matrix *= 0
             self._protection_matrix[indx] = 1
 
     def subsample_sp_h(self, disturbance_matrix, seed=0):

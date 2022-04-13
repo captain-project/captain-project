@@ -191,7 +191,7 @@ def run_policy_empirical(
         result_file_name = "%s_%s.pkl" % (result_file, seed_list[i])
         full_file_name = os.path.join(wd, result_file_name)
         SaveObject(env, full_file_name)
-        print("Results saved as:", full_file_name)
+        print("\n\nResults saved as:", full_file_name)
         out_files.append(full_file_name)
     
     if rep == 1:
