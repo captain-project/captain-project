@@ -9,6 +9,7 @@ from ..agents.policy import PolicyNN, get_NN_model_prm
 from ..algorithms.marxan_setup import *
 from ..algorithms.env_setup import *
 from ..algorithms.empirical_env_setup import *
+from ..biodivsim.ConservationTargets import *
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing.pool
 
@@ -131,6 +132,7 @@ def run_policy_empirical(
         n_nodes=[8, 0],
         budget=None,
         protection_target=0.1,
+        conservation_target=None, # object of class: ConservationTarget
         n_steps=25,
         stop_at_end_budget=True,  # has priority over n_steps and stop_at_target_met
         stop_at_target_met=False,  # has priority over n_steps
@@ -145,9 +147,14 @@ def run_policy_empirical(
         replicates=1,
         max_workers=None
 ):
+    if not conservation_target:
+        # legacy default
+        conservation_target = FractionConservationTarget(protect_fraction=protection_target)
     # load systems
     env_list = []
     seed_list = []
+    print_update("\n\n")
+    print_update("Preparing environment...")
     for rep in range(replicates):
         env_rep = copy.deepcopy(env)
         # update env settings based on run settings
@@ -162,7 +169,7 @@ def run_policy_empirical(
             # state_monitor.get_quadrant_coord_species_clean()
             env.set_sp_quadrant_list_only_once()
         # set conservation target
-        env_rep.set_conservation_target(protection_target)
+        env_rep.reset_dynamic_target(conservation_target)
         if rep > 0:
             # print output only from 1st run
             env_rep.set_print_freq(np.Inf)
@@ -184,7 +191,8 @@ def run_policy_empirical(
     
     evolutionRunner = EvolutionPredictEmpirical(update_features=update_features,
                                                 deterministic_policy=deterministic_policy)
-    
+
+    print_update("Preparing environment...done!\n")
     env_list = launch_runner(env_list, policy, evolutionRunner, max_workers)
     out_files = []
     for i, env in enumerate(env_list):

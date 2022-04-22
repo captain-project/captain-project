@@ -9,6 +9,7 @@ from ..agents.policy import PolicyNN, get_NN_model_prm
 from ..algorithms.marxan_setup import *
 from ..algorithms.env_setup import *
 from ..biodivsim.StateInitializer import print_update
+from .ConservationTargets import *
 np.set_printoptions(suppress=True, precision=3)
 
 """
@@ -21,16 +22,6 @@ grid_obj.geoRangePerSpecies()
 grid_obj._climate_layer <- can default to []
 grid_obj._climate_as_disturbance <- can default to 0
 """
-
-
-class DynamicConservationTarget:
-    def __init__(self, step_size=0.01):
-        self._step_size = step_size
-    
-    def update_target(self, target_pop):
-        new_target = target_pop * (1 + self._step_size)
-        return new_target
-
 
 class BioDivEnvEmpirical:
     def __init__(
@@ -51,7 +42,7 @@ class BioDivEnvEmpirical:
             lastObs=None,
             verbose=1,
             drop_unaffordable=False,
-            dynamic_target=DynamicConservationTarget(),  # set to None for fixed target
+            conservation_target=None,  # obj of class ConservationTarget
     ):
         self.bioDivGrid = emp
         self.iterations = iterations
@@ -66,7 +57,7 @@ class BioDivEnvEmpirical:
         self.protection_sequence = []
         # if max prob is smaller than twice the uniform probability then stop updating features
         self.max_prob_threshold = (1 / (emp._n_pus)) * 2
-        self.min_pop_requirement = emp.individualsPerSpecies() * protect_fraction
+        self.min_pop_requirement = None
         self.protect_fraction = protect_fraction
         self.sp_quadrant_list = None
         self._init_sp_quadrant_list_only_once = init_sp_quadrant_list_only_once
@@ -75,7 +66,7 @@ class BioDivEnvEmpirical:
         )
         # protected with current budget
         # only works with: RunMode.ORACLE
-        self.avg_min_pop_requirement = np.mean(self.min_pop_requirement)
+        self.avg_min_pop_requirement = None
         self._start_protecting = start_protecting
         self._h_seed = h_seed
         self._initialBudget = budget
@@ -83,7 +74,11 @@ class BioDivEnvEmpirical:
         self.resolution = np.array([1, 1])
         self.static_system = True  # no changes in pop sizes, climate, disturbance -> no recurrent observe() needed
         self.starting_protection_matrix = starting_protection_matrix
-        self._dynamic_target = dynamic_target
+        if not conservation_target:
+            self.reset_dynamic_target(FractionConservationTarget())
+        else:
+            self.reset_dynamic_target(conservation_target)
+
         self.print_freq = 10 # print frequency
         
         self.reset()
@@ -98,8 +93,10 @@ class BioDivEnvEmpirical:
         )
         # reset protection matrix
         self.bioDivGrid.reset()
-        self.set_conservation_target(self.protect_fraction)
+        self.reset_dynamic_target()
         self._sp_target_met = self.get_species_met_target()
+        self.avg_min_pop_requirement = np.mean(self.min_pop_requirement)
+
         
         if self.verbose:
             print(self.bioDivGrid.disturbance_matrix)
@@ -209,8 +206,10 @@ class BioDivEnvEmpirical:
                 "n. PUs: %s " % (int(np.sum(self.bioDivGrid.protection_matrix))) +
                 # "cost:", np.round(action_cost, 2),
                 "budget (%):" + " %s " % (np.round(self.budget / self._initialBudget * 100, 2)) +
-                "Current target: %s, %s, %s,... "
-                % tuple(np.round(self.min_pop_requirement[0:3], 1)) +
+                "Current target: %s (%s - %s) "
+                % (np.round(np.median(self.min_pop_requirement), 1),
+                   np.round(np.min(self.min_pop_requirement), 1),
+                   np.round(np.max(self.min_pop_requirement), 1)) +
                 "met in %s sp." % len(self._sp_target_met)
                 # TODO: log this to output file
             )
@@ -226,11 +225,8 @@ class BioDivEnvEmpirical:
             done = self.bioDivGrid._counter >= self.iterations
         
         # raise target if baseline already met
-        if self._dynamic_target:
-            if len(self._sp_target_met) == self.bioDivGrid._n_species:
-                self.min_pop_requirement = self._dynamic_target.update_target(
-                    self.min_pop_requirement
-                )
+        if len(self._sp_target_met) == self.bioDivGrid._n_species:
+            self.min_pop_requirement = self._dynamic_target.update_target(self.min_pop_requirement)
         
         info = self._getInfo()
         reward = None
@@ -266,8 +262,7 @@ class BioDivEnvEmpirical:
     
     def set_lastObs(self, lastObs):
         self.lastObs = lastObs
-        if self._dynamic_target:
-            self._sp_target_met = self.get_species_met_target()
+        self._sp_target_met = self.get_species_met_target()
     
     def set_budget(self, budget, relative_budget=True):
         if relative_budget:
@@ -285,14 +280,13 @@ class BioDivEnvEmpirical:
     
     def set_runMode(self, runMode):
         self.runMode = runMode
-    
-    def set_conservation_target(self, protect_fraction):
-        tmp = (
-                self.bioDivGrid.individualsPerSpecies() * protect_fraction
-        )
-        self.min_pop_requirement = np.ceil(tmp)
-        self.protect_fraction = protect_fraction
-    
+
+    def reset_dynamic_target(self, conservation_target_obj=None):
+        if conservation_target_obj is not None:
+            self._dynamic_target = conservation_target_obj
+        self.min_pop_requirement = self._dynamic_target.init_sp_target(self.bioDivGrid.individualsPerSpecies())
+        self.protect_fraction = self.min_pop_requirement / self.bioDivGrid.individualsPerSpecies()
+
     def reset_w_seed(self, seed):
         self._h_seed = seed
         self.reset()

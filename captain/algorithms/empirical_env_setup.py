@@ -16,7 +16,7 @@ Inputs/pu.dat <- cost per unit and status (in case already protected)
 Planning_Units.txt <- unit ID and coordinates
 
 """
-from captain import *
+# from captain import *
 import numpy as np
 import pandas as pd
 
@@ -87,17 +87,8 @@ def build_empirical_env(
         observePolicy
     ]
 
-    env = BioDivEnvEmpirical(
-        emp,
-        budget,
-        runMode=runMode,
-        cost_pu=cost_array,
-        stop_at_end_budget=True,
-        verbose=0,
-        iterations=None,
-        protect_fraction=protect_fraction,
-        h_seed=seed,
-    )
+    env = BioDivEnvEmpirical(emp, budget, runMode=runMode, iterations=None, stop_at_end_budget=True, cost_pu=cost_array,
+                             h_seed=seed, protect_fraction=protect_fraction, verbose=0)
     return env
 
 

@@ -25,3 +25,4 @@ from .biodivinit.SimulatorInit import *
 from .plot.plot_env import *
 from .biodivsim.EmpiricalGrid import *
 from .algorithms.runPolicyEmpirical import *
+from .biodivsim.ConservationTargets import *
