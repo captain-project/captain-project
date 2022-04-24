@@ -16,6 +16,7 @@ class ConservationTarget():
 class RangeConservationTarget(ConservationTarget):
     def __init__(self,
                  min_fr=0.1,
+                 max_fr=1,
                  min_range=1,
                  max_range=np.inf,
                  loglinear=True,
@@ -23,6 +24,7 @@ class RangeConservationTarget(ConservationTarget):
                  ):
         self._step_size = step_size
         self._min_fr = min_fr
+        self._max_fr = max_fr
         self._min_range = min_range
         self._max_range = max_range
         self._loglinear = loglinear
@@ -37,9 +39,8 @@ class RangeConservationTarget(ConservationTarget):
 
         max_x = np.max(f(x))
         min_x = f(self._min_range)
-        max_fr = 1
-        slope = (max_fr - self._min_fr) / (min_x - max_x)
-        intercept = slope * (-f(self._min_range)) + max_fr
+        slope = (self._max_fr - self._min_fr) / (min_x - max_x)
+        intercept = slope * (-f(self._min_range)) + self._max_fr
         y = intercept + f(x) * slope
         y[y > 1] = 1
         count = y * x
