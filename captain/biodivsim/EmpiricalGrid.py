@@ -208,6 +208,15 @@ class EmpiricalGrid:
         x = np.random.binomial(1, p.T)
         a = self._h_initial[:, :, 0] * x
         a = a.reshape(self._h_initial.shape)
+
+        idx=0
+        for spp in a:
+            if sum(spp)==0:
+                pu_w_spp_present = list(np.where(self._h_initial[idx, :, 0] > 0)[0])
+                random_pu = random.choice(pu_w_spp_present)
+                a[idx,random_pu,0] += 1
+            idx += 1
+
         self._h = a
 
     @property
