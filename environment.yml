@@ -10,11 +10,11 @@ dependencies:
   - matplotlib=3.5
   - seaborn=0.11
   - pip:
-    - aiohttp=3.8
-    - baltic=0.1
-    - build=0.7
-    - dendropy=4.5
-    - gym=0.21
-    - pyinstaller=5.0
-    - python-socketio=5.6
-    - scipy=1.7
+    - aiohttp==3.*
+    - baltic==0.*
+    - build==0.*
+    - dendropy==4.*
+    - gym==0.*
+    - pyinstaller==5.*
+    - python-socketio==5.*
+    - scipy==1.*
