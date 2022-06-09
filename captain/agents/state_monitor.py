@@ -2,7 +2,7 @@ import sys
 
 import numpy as np
 
-np.set_printoptions(suppress=1, precision=3)  # prints floats, no scientific notation
+np.set_printoptions(suppress=True, precision=3)  # prints floats, no scientific notation
 
 
 class FeaturesObservation(object):
@@ -238,6 +238,7 @@ def get_feature_indx(mode, print_obs_mode=False):
         "return_deltaVC_sp",  # 6
         "return_deltaVC_val",  # 7
         "comb-value",  # 8
+        "inverse-values", # 9
         "all",  # -1
     ]
     criterion = mode_list[mode]
@@ -260,6 +261,7 @@ def get_feature_indx(mode, print_obs_mode=False):
     comb_pop_value = 26
     delta_VC_species = 27  # number of non-protected species in quadrant / cost
     delta_VC_value = 28  # value of non-protected species in quadrant / cost
+    inverse_val = [29, 30, 31]
     
     if criterion == "protected-only":  # 0
         indx = [already_protected]
@@ -291,6 +293,8 @@ def get_feature_indx(mode, print_obs_mode=False):
             budget_cost,
             already_protected,
         ]
+    elif criterion == "inverse-values": # 9
+        indx = inverse_val
     elif criterion == "all":
         indx = range(27)
     else:
@@ -615,6 +619,26 @@ def extract_features(
         list_features_by_quadrant.append(
             (non_protected_value / total_value) / delta_den
         )
+
+        "Inverse values"
+        # 29 inverse range size
+        if len(i_at_risk):
+            g = range_sizes[i_at_risk] + 0
+            inv_range = np.sum(1 / g[g > 0])
+        else:
+            inv_range = 0
+        list_features_by_quadrant.append(inv_range)
+        # 30. inverse cost
+        inv_cost = 1 / cost_q
+        list_features_by_quadrant.append(inv_cost)
+        # 31 can be bought
+        if cost_q > budget or protected_list[counter] == 1:
+            can_afford = 0
+        else:
+            can_afford = 1
+        list_features_by_quadrant.append(inv_cost)
+        # print(inv_range, len(i), len(i_at_risk), cost_q, inv_cost, budget)
+
 
         # LAST. protection
         # print('protected_list',protected_list)

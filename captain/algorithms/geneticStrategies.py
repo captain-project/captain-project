@@ -193,7 +193,7 @@ def runBatchGeneticStrategyRichPolicy(
     # species loss is calculated in BioDivEnv: `reward = self.bioDivGrid.numberOfSpecies() - self.n_extant`
 
     num_features = len(get_feature_indx(mode=obsMode))
-    # print("num_features", num_features)
+    print("num_features", num_features)
     # print(get_feature_indx(mode=obsMode))
     # quit()
     [
@@ -203,7 +203,7 @@ def runBatchGeneticStrategyRichPolicy(
         nodes_layer_2,
         nodes_layer_3,
         n_prms,
-    ] = get_NN_model_prm(num_features, n_NN_nodes, OUTPUT)
+    ] = get_NN_model_prm(num_features, n_NN_nodes, OUTPUT, obsMode)
 
     if wNN is None:
         coeff_features = np.random.normal(0, 0.1, n_prms)
