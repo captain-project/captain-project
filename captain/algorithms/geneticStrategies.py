@@ -129,7 +129,7 @@ def runBatchGeneticStrategyRichPolicy(
     use_protection_cost=0,
     wNN=None,
     n_NN_nodes=[4, 0],
-    increase_temp=0,
+    increase_temp=0.,
     rewardMode=0,
     random_training=1,
     resolution=np.array([1,1]),
@@ -145,6 +145,7 @@ def runBatchGeneticStrategyRichPolicy(
     max_temperature=10,
     sp_threshold_feature_extraction=1,
     start_protecting=3,
+    act_function='relu',
 ):
     RESOLUTION = resolution
     if max_workers == 0:
@@ -224,6 +225,7 @@ def runBatchGeneticStrategyRichPolicy(
         nodes_l2=nodes_layer_2,
         nodes_l3=nodes_layer_3,
         sp_threshold=sp_threshold_feature_extraction,
+        act_function=act_function
     )
 
     state_adaptor = RichStateAdaptor()
@@ -465,6 +467,7 @@ def train_model(
     max_temperature=10,
     sp_threshold_feature_extraction=1,
     start_protecting=3,
+    act_fun='relu',
 ):
 
     """
@@ -542,4 +545,5 @@ def train_model(
         max_temperature=max_temperature,
         sp_threshold_feature_extraction=sp_threshold_feature_extraction,
         start_protecting=start_protecting,
+        act_function=act_fun,
     )

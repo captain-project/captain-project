@@ -22,6 +22,7 @@ class PolicyNN(object):
         fully_connected=0,
         verbose=0,
         flattened=False,
+        act_function='relu'
     ):
         # check meta features matches the features generating function
         self._num_meta_features = num_meta_features
@@ -39,6 +40,12 @@ class PolicyNN(object):
         self._fully_connected = fully_connected
         self._verbose = verbose
         self._flattened = flattened
+        if act_function == 'relu':
+            self._act_function=relu_f
+        elif act_function == 'tanh':
+            self._act_function=tanh_f
+        else:
+            sys.exit("Activation function not found (available options: relu, tanh)")
 
     @property
     def num_output(self):
@@ -71,6 +78,7 @@ class PolicyNN(object):
         coeff_meta_features = state_monitor.get_thresholds(
             self._coeff[-self._num_meta_features :]
         )
+        # print("coeff_meta_features", coeff_meta_features)
         if rich_state.budget_left < np.min(rich_state.protection_cost):
             """Skip monitoring if budget does not allow more protection"""
             probs = np.ones(len(rich_state.protection_cost)) / len(rich_state.protection_cost)
@@ -136,12 +144,10 @@ class PolicyNN(object):
                     weights_l3 = coeff_policy[-(self._nodes_l3) :]
 
                 z1 = np.einsum("nf, fi->ni", internal_state, tmp_coeff)
-                z1[z1 < 0] = 0
+                z1 = self._act_function(z1)
                 if self._nodes_l2:
-                    # print(tmp_coeff2.shape, z1.shape)
                     h1 = np.einsum("ni,ic->nc", z1, tmp_coeff2)
-                    h1[h1 < 0] = 0
-                    z1 = h1 + 0
+                    z1 = self._act_function(h1)
                 h2 = np.einsum("f,nf->n", weights_l3, z1)
 
             if self._temperature != 1:
@@ -194,3 +200,16 @@ def get_NN_model_prm(num_features, n_NN_nodes, num_output, obsMode=1):
         nodes_layer_3,
         n_prms,
     ]
+
+
+def relu_f(z):
+    z[z < 0] = 0
+    return z
+
+def swish_f(z):
+    # https://arxiv.org/abs/1710.05941
+    z = z * (1 + np.exp(-z))**(-1)
+    return z
+
+def tanh_f(z):
+    return np.tanh(z)
