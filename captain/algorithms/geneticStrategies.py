@@ -1,14 +1,10 @@
-import csv
-import os
-import sys
-
 # TODO fix imports
 # module_path = os.path.abspath(os.path.join('..'))
 # if module_path not in sys.path:
 #     sys.path.append(module_path)
-from ..biodivsim.BioDivEnv import BioDivEnv, Action, ActionType, RunMode
-from ..agents.state_monitor import extract_features, get_feature_indx, get_thresholds
 import numpy as np
+
+from ..agents.state_monitor import get_feature_indx, get_thresholds
 
 np.set_printoptions(suppress=1)  # prints floats, no scientific notation
 np.set_printoptions(precision=3)  # rounds all array elements to 3rd digit
@@ -16,7 +12,6 @@ from ..biodivsim.StateInitializer import *
 from ..algorithms.reinforce import RichProtectActionAdaptor, RichStateAdaptor
 from ..agents.policy import PolicyNN, get_NN_model_prm
 from concurrent.futures import ProcessPoolExecutor
-import collections
 from .env_setup import *
 from ..biodivsim.BioDivEnv import *
 
@@ -94,6 +89,19 @@ def computeEvolutionaryUpdate(
     new_coeff = epoch_coeff + alpha / (n * sigma) * np.sum(perturbed_advantage, 0)
     return new_coeff
 
+def computeMCUpdate(
+        results, epoch_coeff, param_noise, _, __, running_reward
+):
+    final_reward_list = []
+    for res in results:
+        final_reward_list.append(np.sum(res[1]))
+    final_reward = np.mean(final_reward_list)
+    if final_reward >= running_reward:
+        print("accept", final_reward, final_reward_list, running_reward)
+        return epoch_coeff, True
+    else:
+        print("reject", final_reward, final_reward_list, running_reward)
+        return epoch_coeff - param_noise[0], False # return to previous
 
 def getFinalStepAvgReward(results):
     avg_final_rew = 0
@@ -107,6 +115,14 @@ def getFinalStepAvgReward(results):
     else:
         return 0
 
+def UpdateNormal1D(i, d=0.01, n=1, Mb=100, mb= -100):
+    i = np.array(i)
+    Ix = np.random.randint(0, len(i),n) # faster than np.random.choice
+    z = np.zeros(i.shape) + i
+    z[Ix] = z[Ix] + np.random.normal(0, d, n)
+    z[z > Mb] = Mb - (z[z>Mb] - Mb)
+    z[z < mb] = mb + (mb - z[z<mb])
+    return z
 
 def runBatchGeneticStrategyRichPolicy(
     batch_size,
@@ -146,6 +162,7 @@ def runBatchGeneticStrategyRichPolicy(
     sp_threshold_feature_extraction=1,
     start_protecting=3,
     act_function='relu',
+    mc_updates=False,
 ):
     RESOLUTION = resolution
     if max_workers == 0:
@@ -352,12 +369,21 @@ def runBatchGeneticStrategyRichPolicy(
         print(f"running epoch {epoch}")
         print("=======================================")
 
-        param_noise = (
-            np.random.normal(
-                0, 1, (batch_size, len(coeff_features) + num_meta_features)
+        if not mc_updates:
+            param_noise = (
+                np.random.normal(
+                    0, 1, (batch_size, len(coeff_features) + num_meta_features)
+                ) * sigma
             )
-            * sigma
-        )
+            # print(param_noise)
+        else:
+            # same vector for all batch
+            r = UpdateNormal1D(np.zeros(len(coeff_features) + num_meta_features), d=sigma, n=3, Mb=100, mb=-100)
+            param_noise = (
+                np.zeros((batch_size, len(coeff_features) + num_meta_features)) + r
+            )
+            # print(param_noise)
+
         if batch_size > 1:  # parallelize
             with ProcessPoolExecutor(max_workers=max_workers) as pool:
                 runnerInputList = [
@@ -373,18 +399,30 @@ def runBatchGeneticStrategyRichPolicy(
             results = [runOneEvolutionEpoch(runnerInputList[0])]
 
         avg_reward = getFinalStepAvgReward(results)
-        # moving average of reward
         if epoch == 0 and running_reward_start == -1000:
             running_reward = avg_reward
-        running_reward = (
-            eps_running_reward * avg_reward
-            + (1.0 - eps_running_reward) * running_reward
-        )
-        newCoeff = computeEvolutionaryUpdate(
-            results, epoch_coeff, param_noise, lr_epoch, sigma, running_reward
-        )
+        if not mc_updates:
+            newCoeff = computeEvolutionaryUpdate(
+                results, epoch_coeff, param_noise, lr_epoch, sigma, running_reward
+            )
+            # moving average of reward
+            running_reward = (
+                    eps_running_reward * avg_reward
+                    + (1.0 - eps_running_reward) * running_reward
+            )
+        else:
+            newCoeff, accepted = computeMCUpdate(
+                results, epoch_coeff, param_noise, lr_epoch, sigma, running_reward
+            )
+            if accepted:
+                running_reward = (
+                        eps_running_reward * avg_reward
+                        + (1.0 - eps_running_reward) * running_reward
+                )
 
+        print("before", policy.coeff)
         policy.setCoeff(newCoeff)
+        print("after", policy.coeff)
 
         print("=======================================")
         print(f"epoch {epoch} summary")
@@ -422,8 +460,12 @@ def runBatchGeneticStrategyRichPolicy(
                 avg_extant_sp,
                 avg_extant_sp_value,
                 avg_extant_sp_pd,
-            ] + list(policy.coeff[:-num_meta_features])
-            l = l + list(get_thresholds(policy.coeff[-num_meta_features:]))
+            ]
+            if num_meta_features > 0:
+                l = l + list(policy.coeff[:-num_meta_features])
+                l = l + list(get_thresholds(policy.coeff[-num_meta_features:]))
+            else:
+                l = l + list(policy.coeff)
             writer.writerow(l)
 
 
@@ -468,6 +510,7 @@ def train_model(
     sp_threshold_feature_extraction=1,
     start_protecting=3,
     act_fun='relu',
+    mc_updates=False,
 ):
 
     """
@@ -546,4 +589,5 @@ def train_model(
         sp_threshold_feature_extraction=sp_threshold_feature_extraction,
         start_protecting=start_protecting,
         act_function=act_fun,
+        mc_updates=mc_updates,
     )
