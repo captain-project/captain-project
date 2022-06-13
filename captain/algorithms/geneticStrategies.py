@@ -189,14 +189,17 @@ def runBatchGeneticStrategyRichPolicy(
     if random_training == 1:
         rnd_disturbance_init = disturbance_mode
         gridInitializer = RandomPickleInitializer(pklfolder=wd, verbose=True)
+        disturbance_init_seed = None
     elif random_training == 0:
         rnd_disturbance_init = -1
+        disturbance_init_seed = seed
         gridInitializer = PickleInitializerBatch(
             pklfolder=wd, verbose=True, pklfile_i=0
         )
     elif random_training == 2:
         rnd_disturbance_init = -1
         gridInitializer = PickleInitializerSequential(pklfolder=wd, verbose=True)
+        disturbance_init_seed = None
     init_data = gridInitializer.getInitialState(1, 1, 1)
     n_cells = init_data.shape[1]
     n_species = init_data.shape[0]
@@ -211,7 +214,7 @@ def runBatchGeneticStrategyRichPolicy(
         OUTPUT = np.int(OUTPUT)
         print("Number of protection units: ", OUTPUT)
     
-    distb_obj, selectivedistb_obj = get_disturbance(disturbance_mode)
+    distb_obj, selectivedistb_obj = get_disturbance(disturbance_mode, disturbance_init_seed)
     disturbance_sensitivity = np.zeros(n_species) + np.random.random(n_species)
     selective_sensitivity = np.random.beta(0.2, 0.7, n_species)
     climate_sensitivity = np.random.beta(2, 2, n_species)
@@ -403,6 +406,18 @@ def runBatchGeneticStrategyRichPolicy(
                 np.zeros((batch_size, len(coeff_features) + num_meta_features)) + r
             )
             # print(param_noise)
+
+        # reset disturbance generators
+        if random_training == 0:
+            for env in envList:
+                # distb_obj, selectivedistb_obj = get_disturbance(disturbance_mode, disturbance_init_seed)
+                distb_obj.reset_counter()
+                # selectivedistb_obj.reset_counter()
+                env.disturbanceGenerator = distb_obj
+                env.selectivedisturbanceInitializer = selectivedistb_obj
+                print(distb_obj, selectivedistb_obj, env.rnd_disturbance_init, disturbance_mode, disturbance_init_seed)
+                print(distb_obj._rr, distb_obj._counter)
+
 
         if batch_size > 1:  # parallelize
             if mc_updates:
