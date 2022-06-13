@@ -415,8 +415,8 @@ def runBatchGeneticStrategyRichPolicy(
                 # selectivedistb_obj.reset_counter()
                 env.disturbanceGenerator = distb_obj
                 env.selectivedisturbanceInitializer = selectivedistb_obj
-                print(distb_obj, selectivedistb_obj, env.rnd_disturbance_init, disturbance_mode, disturbance_init_seed)
-                print(distb_obj._rr, distb_obj._counter)
+                # print(distb_obj, selectivedistb_obj, env.rnd_disturbance_init, disturbance_mode, disturbance_init_seed)
+                # print(distb_obj._rr, distb_obj._counter)
 
 
         if batch_size > 1:  # parallelize
@@ -424,7 +424,7 @@ def runBatchGeneticStrategyRichPolicy(
                 # half batch w/o prm update
                 param_noise_tmp = param_noise
                 param_noise_tmp[int(np.round(batch_size / 2)):, :] *= 0
-                print(param_noise_tmp)
+                # print(param_noise_tmp)
             with ProcessPoolExecutor(max_workers=max_workers) as pool:
                 runnerInputList = [
                     EvolutionRunnerInput(env, policy, evolutionRunner, noise)
@@ -459,10 +459,6 @@ def runBatchGeneticStrategyRichPolicy(
                         eps_running_reward * avg_reward
                         + (1.0 - eps_running_reward) * running_reward
                 )
-
-        print("before", policy.coeff, epoch_coeff)
-        policy.setCoeff(newCoeff)
-        print("after", policy.coeff)
 
         print("=======================================")
         print(f"epoch {epoch} summary")
