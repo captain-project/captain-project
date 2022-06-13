@@ -1,7 +1,12 @@
+import csv
+import os
+import sys
 # TODO fix imports
 # module_path = os.path.abspath(os.path.join('..'))
 # if module_path not in sys.path:
 #     sys.path.append(module_path)
+from ..biodivsim.BioDivEnv import BioDivEnv, Action, ActionType, RunMode
+from ..agents.state_monitor import extract_features, get_feature_indx, get_thresholds
 import numpy as np
 
 from ..agents.state_monitor import get_feature_indx, get_thresholds
@@ -12,6 +17,7 @@ from ..biodivsim.StateInitializer import *
 from ..algorithms.reinforce import RichProtectActionAdaptor, RichStateAdaptor
 from ..agents.policy import PolicyNN, get_NN_model_prm
 from concurrent.futures import ProcessPoolExecutor
+import collections
 from .env_setup import *
 from ..biodivsim.BioDivEnv import *
 
@@ -95,13 +101,26 @@ def computeMCUpdate(
     final_reward_list = []
     for res in results:
         final_reward_list.append(np.sum(res[1]))
-    final_reward = np.mean(final_reward_list)
-    if final_reward >= running_reward:
-        print("accept", final_reward, final_reward_list, running_reward)
-        return epoch_coeff, True
+
+    if len(final_reward_list) > 1:
+        final_reward_updated = np.mean(final_reward_list[:int(np.round(len(final_reward_list) / 2))])
+        final_reward_reference = np.mean(final_reward_list[int(np.round(len(final_reward_list) / 2)):])
+        print("final_reward_updated:", final_reward_updated)
+        print("final_reward_reference:", final_reward_reference)
+        if final_reward_updated >= final_reward_reference:
+            print("accept", final_reward_updated, final_reward_list, final_reward_reference)
+            return epoch_coeff + param_noise[0], True, final_reward_updated
+        else:
+            print("reject", final_reward_updated, final_reward_list, final_reward_reference)
+            return epoch_coeff, False, final_reward_reference # return to previous
     else:
-        print("reject", final_reward, final_reward_list, running_reward)
-        return epoch_coeff - param_noise[0], False # return to previous
+        final_reward = np.mean(final_reward_list)
+        if final_reward >= running_reward:
+            print("accept", final_reward, final_reward_list, running_reward)
+            return epoch_coeff + param_noise, True, final_reward
+        else:
+            print("reject", final_reward, final_reward_list, running_reward)
+            return epoch_coeff, False, final_reward # return to previous
 
 def getFinalStepAvgReward(results):
     avg_final_rew = 0
@@ -358,7 +377,8 @@ def runBatchGeneticStrategyRichPolicy(
     running_reward = running_reward_start
 
     for epoch in range(epochs):
-        epoch_coeff = policy.coeff
+        epoch_coeff = policy.coeff + 0
+        print("init prm", policy.coeff, epoch_coeff)
         lr_epoch = np.max([0.05, lr * np.exp(-lr_adapt * epoch)])
         if increase_temp and epoch > 0:
             if policy.temperature < max_temperature:
@@ -385,6 +405,11 @@ def runBatchGeneticStrategyRichPolicy(
             # print(param_noise)
 
         if batch_size > 1:  # parallelize
+            if mc_updates:
+                # half batch w/o prm update
+                param_noise_tmp = param_noise
+                param_noise_tmp[int(np.round(batch_size / 2)):, :] *= 0
+                print(param_noise_tmp)
             with ProcessPoolExecutor(max_workers=max_workers) as pool:
                 runnerInputList = [
                     EvolutionRunnerInput(env, policy, evolutionRunner, noise)
@@ -411,7 +436,7 @@ def runBatchGeneticStrategyRichPolicy(
                     + (1.0 - eps_running_reward) * running_reward
             )
         else:
-            newCoeff, accepted = computeMCUpdate(
+            newCoeff, accepted, avg_reward = computeMCUpdate(
                 results, epoch_coeff, param_noise, lr_epoch, sigma, running_reward
             )
             if accepted:
@@ -420,7 +445,7 @@ def runBatchGeneticStrategyRichPolicy(
                         + (1.0 - eps_running_reward) * running_reward
                 )
 
-        print("before", policy.coeff)
+        print("before", policy.coeff, epoch_coeff)
         policy.setCoeff(newCoeff)
         print("after", policy.coeff)
 
