@@ -79,7 +79,7 @@ def runOneEvolutionEpoch(runnerInput):
 
 
 def computeEvolutionaryUpdate(
-    results, epoch_coeff, noise, alpha, sigma, running_reward
+    results, epoch_coeff, noise, alpha, sigma, running_reward, verbose=0
 ):
     if sigma == 0:
         return epoch_coeff
@@ -91,12 +91,14 @@ def computeEvolutionaryUpdate(
     perturbed_advantage = [
         (rr - running_reward) * nn for rr, nn in zip(final_reward_list, noise)
     ]
+    if verbose == 2:
+        print("perturbed_advantage", perturbed_advantage, epoch_coeff + alpha / (n * sigma) * np.sum(perturbed_advantage, 0))
     # perturbed_advantage has the size ( batch_size, coeff_size )
     new_coeff = epoch_coeff + alpha / (n * sigma) * np.sum(perturbed_advantage, 0)
     return new_coeff
 
 def computeMCUpdate(
-        results, epoch_coeff, param_noise, _, __, running_reward
+        results, epoch_coeff, param_noise, _, __, running_reward, verbose=0
 ):
     final_reward_list = []
     for res in results:
@@ -105,21 +107,26 @@ def computeMCUpdate(
     if len(final_reward_list) > 1:
         final_reward_updated = np.mean(final_reward_list[:int(np.round(len(final_reward_list) / 2))])
         final_reward_reference = np.mean(final_reward_list[int(np.round(len(final_reward_list) / 2)):])
-        print("final_reward_updated:", final_reward_updated)
-        print("final_reward_reference:", final_reward_reference)
+        if verbose == 2:
+            print("final_reward_updated:", final_reward_updated)
+            print("final_reward_reference:", final_reward_reference)
         if final_reward_updated >= final_reward_reference:
-            print("accept", final_reward_updated, final_reward_list, final_reward_reference)
+            if verbose == 2:
+                print("accept", final_reward_updated, final_reward_list, final_reward_reference)
             return epoch_coeff + param_noise[0], True, final_reward_updated
         else:
-            print("reject", final_reward_updated, final_reward_list, final_reward_reference)
+            if verbose == 2:
+                print("reject", final_reward_updated, final_reward_list, final_reward_reference)
             return epoch_coeff, False, final_reward_reference # return to previous
     else:
         final_reward = np.mean(final_reward_list)
         if final_reward >= running_reward:
-            print("accept", final_reward, final_reward_list, running_reward)
+            if verbose == 2:
+                print("accept", final_reward, final_reward_list, running_reward)
             return epoch_coeff + param_noise, True, final_reward
         else:
-            print("reject", final_reward, final_reward_list, running_reward)
+            if verbose == 2:
+                print("reject", final_reward, final_reward_list, running_reward)
             return epoch_coeff, False, final_reward # return to previous
 
 def getFinalStepAvgReward(results):
@@ -182,23 +189,24 @@ def runBatchGeneticStrategyRichPolicy(
     start_protecting=3,
     act_function='relu',
     mc_updates=False,
+    verbose=1,
 ):
     RESOLUTION = resolution
     if max_workers == 0:
         max_workers = batch_size
     if random_training == 1:
         rnd_disturbance_init = disturbance_mode
-        gridInitializer = RandomPickleInitializer(pklfolder=wd, verbose=True)
+        gridInitializer = RandomPickleInitializer(pklfolder=wd, verbose=verbose)
         disturbance_init_seed = None
     elif random_training == 0:
         rnd_disturbance_init = -1
         disturbance_init_seed = seed
         gridInitializer = PickleInitializerBatch(
-            pklfolder=wd, verbose=True, pklfile_i=0
+            pklfolder=wd, verbose=verbose, pklfile_i=0
         )
     elif random_training == 2:
         rnd_disturbance_init = -1
-        gridInitializer = PickleInitializerSequential(pklfolder=wd, verbose=True)
+        gridInitializer = PickleInitializerSequential(pklfolder=wd, verbose=verbose)
         disturbance_init_seed = None
     init_data = gridInitializer.getInitialState(1, 1, 1)
     n_cells = init_data.shape[1]
@@ -233,7 +241,8 @@ def runBatchGeneticStrategyRichPolicy(
     # species loss is calculated in BioDivEnv: `reward = self.bioDivGrid.numberOfSpecies() - self.n_extant`
 
     num_features = len(get_feature_indx(mode=obsMode))
-    print("num_features", num_features)
+    if verbose:
+        print("num_features", num_features)
     # print(get_feature_indx(mode=obsMode))
     # quit()
     [
@@ -366,27 +375,29 @@ def runBatchGeneticStrategyRichPolicy(
             )
             for i in range(batch_size)
         ]
-
-    print("max_workers", max_workers, batch_size)
+    if verbose:
+        print("max_workers", max_workers, batch_size)
     if batch_size > 1:  # parallelize
         with ProcessPoolExecutor(max_workers=max_workers) as pool:
             envList = list(pool.map(buildEnv, envInput))
     else:
         envList = [buildEnv(envInput[0])]
-    print("=============================================")
-    print("setup done! Running parameter optimization...")
-    print("=============================================")
+    if verbose:
+        print("=============================================")
+        print("setup done! Running parameter optimization...")
+        print("=============================================")
 
     running_reward = running_reward_start
 
     for epoch in range(epochs):
         epoch_coeff = policy.coeff + 0
-        print("init prm", policy.coeff, epoch_coeff)
+        # print("init prm", policy.coeff, epoch_coeff)
         lr_epoch = np.max([0.05, lr * np.exp(-lr_adapt * epoch)])
         if increase_temp and epoch > 0:
             if policy.temperature < max_temperature:
                 policy.setTemperature(policy.temperature + increase_temp)
-                print(f"increase temperature to {policy.temperature}; lr = {lr_epoch}")
+                if verbose:
+                    print(f"increase temperature to {policy.temperature}; lr = {lr_epoch}")
 
         print("=======================================")
         print(f"running epoch {epoch}")
@@ -398,7 +409,8 @@ def runBatchGeneticStrategyRichPolicy(
                     0, 1, (batch_size, len(coeff_features) + num_meta_features)
                 ) * sigma
             )
-            # print(param_noise)
+            if verbose == 2:
+                print("param_noise", param_noise)
         else:
             # same vector for all batch
             r = UpdateNormal1D(np.zeros(len(coeff_features) + num_meta_features), d=sigma, n=3, Mb=100, mb=-100)
@@ -422,8 +434,7 @@ def runBatchGeneticStrategyRichPolicy(
         if batch_size > 1:  # parallelize
             if mc_updates:
                 # half batch w/o prm update
-                param_noise_tmp = param_noise
-                param_noise_tmp[int(np.round(batch_size / 2)):, :] *= 0
+                param_noise[int(np.round(batch_size / 2)):, :] *= 0
                 # print(param_noise_tmp)
             with ProcessPoolExecutor(max_workers=max_workers) as pool:
                 runnerInputList = [
@@ -442,17 +453,21 @@ def runBatchGeneticStrategyRichPolicy(
         if epoch == 0 and running_reward_start == -1000:
             running_reward = avg_reward
         if not mc_updates:
+            if verbose == 2:
+                print("param_noise", param_noise, lr_epoch, sigma, running_reward, results)
             newCoeff = computeEvolutionaryUpdate(
-                results, epoch_coeff, param_noise, lr_epoch, sigma, running_reward
+                results, epoch_coeff, param_noise, lr_epoch, sigma, running_reward, verbose
             )
             # moving average of reward
             running_reward = (
                     eps_running_reward * avg_reward
                     + (1.0 - eps_running_reward) * running_reward
             )
+            if verbose == 2:
+                print("newCoeff", newCoeff, epoch_coeff)
         else:
             newCoeff, accepted, avg_reward = computeMCUpdate(
-                results, epoch_coeff, param_noise, lr_epoch, sigma, running_reward
+                results, epoch_coeff, param_noise, lr_epoch, sigma, running_reward, verbose
             )
             if accepted:
                 running_reward = (
@@ -460,17 +475,20 @@ def runBatchGeneticStrategyRichPolicy(
                         + (1.0 - eps_running_reward) * running_reward
                 )
 
-        print("=======================================")
-        print(f"epoch {epoch} summary")
-        print("=======================================")
-        print(f"policy coeff: {policy.coeff}")
-        print(f"avg reward: {avg_reward}")
-        print("rewards", [np.sum(res[1]) for res in results])
-        print("budget left", [res[0]["budget_left"] for res in results])
-        print("time last protect", [res[0]["time_last_protect"] for res in results])
-        print(
-            "n. protected cells", [res[0]["NumberOfProtectedCells"] for res in results]
-        )
+        policy.setCoeff(newCoeff)
+
+        if verbose:
+            print("=======================================")
+            print(f"epoch {epoch} summary")
+            print("=======================================")
+            print(f"policy coeff: {policy.coeff}")
+            print(f"avg reward: {avg_reward}")
+            print("rewards", [np.sum(res[1]) for res in results])
+            print("budget left", [res[0]["budget_left"] for res in results])
+            print("time last protect", [res[0]["time_last_protect"] for res in results])
+            print(
+                "n. protected cells", [res[0]["NumberOfProtectedCells"] for res in results]
+            )
         avg_budget_left = np.mean([res[0]["budget_left"] for res in results])
         avg_time_last_protect = np.mean(
             [res[0]["time_last_protect"] for res in results]
@@ -547,6 +565,7 @@ def train_model(
     start_protecting=3,
     act_fun='relu',
     mc_updates=False,
+    verbose=1,
 ):
 
     """
@@ -626,4 +645,5 @@ def train_model(
         start_protecting=start_protecting,
         act_function=act_fun,
         mc_updates=mc_updates,
+        verbose=verbose,
     )
