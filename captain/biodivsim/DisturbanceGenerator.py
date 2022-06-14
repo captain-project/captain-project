@@ -198,6 +198,8 @@ class TimeIncrementalGaussianDisturbanceGenerator(object):
 
     def reset_counter(self):
         self._counter = 0
+        self._step = 0
+
     def updateDisturbance(self, disturbance_matrix):
         np.random.seed(self._rr + self._counter)
 

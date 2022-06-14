@@ -20,7 +20,8 @@ from concurrent.futures import ProcessPoolExecutor
 import collections
 from .env_setup import *
 from ..biodivsim.BioDivEnv import *
-
+from numpy.random import MT19937
+from numpy.random import RandomState, SeedSequence
 
 class EVOLUTIONBoltzmannBatchRunner(object):
     def __init__(self, state_adaptor, action_adaptor):
@@ -123,7 +124,7 @@ def computeMCUpdate(
         if final_reward >= running_reward:
             if verbose == 2:
                 print("accept", final_reward, final_reward_list, running_reward)
-            return epoch_coeff + param_noise, True, final_reward
+            return epoch_coeff + param_noise[0], True, final_reward
         else:
             if verbose == 2:
                 print("reject", final_reward, final_reward_list, running_reward)
@@ -141,11 +142,11 @@ def getFinalStepAvgReward(results):
     else:
         return 0
 
-def UpdateNormal1D(i, d=0.01, n=1, Mb=100, mb= -100):
+def UpdateNormal1D(i, d=0.01, n=1, Mb=100, mb= -100, rs=None):
     i = np.array(i)
-    Ix = np.random.randint(0, len(i),n) # faster than np.random.choice
+    Ix = rs.randint(0, len(i),n) # faster than np.random.choice
     z = np.zeros(i.shape) + i
-    z[Ix] = z[Ix] + np.random.normal(0, d, n)
+    z[Ix] = z[Ix] + rs.normal(0, d, n)
     z[z > Mb] = Mb - (z[z>Mb] - Mb)
     z[z < mb] = mb + (mb - z[z<mb])
     return z
@@ -191,6 +192,9 @@ def runBatchGeneticStrategyRichPolicy(
     mc_updates=False,
     verbose=1,
 ):
+    rseed = random.randint(1000, 9999)
+    rs = RandomState(MT19937(SeedSequence(rseed)))
+
     RESOLUTION = resolution
     if max_workers == 0:
         max_workers = batch_size
@@ -405,7 +409,7 @@ def runBatchGeneticStrategyRichPolicy(
 
         if not mc_updates:
             param_noise = (
-                np.random.normal(
+                rs.normal(
                     0, 1, (batch_size, len(coeff_features) + num_meta_features)
                 ) * sigma
             )
@@ -413,7 +417,7 @@ def runBatchGeneticStrategyRichPolicy(
                 print("param_noise", param_noise)
         else:
             # same vector for all batch
-            r = UpdateNormal1D(np.zeros(len(coeff_features) + num_meta_features), d=sigma, n=3, Mb=100, mb=-100)
+            r = UpdateNormal1D(np.zeros(len(coeff_features) + num_meta_features), d=sigma, n=3, Mb=100, mb=-100, rs=rs)
             param_noise = (
                 np.zeros((batch_size, len(coeff_features) + num_meta_features)) + r
             )
@@ -481,7 +485,8 @@ def runBatchGeneticStrategyRichPolicy(
             print("=======================================")
             print(f"epoch {epoch} summary")
             print("=======================================")
-            print(f"policy coeff: {policy.coeff}")
+            print("protection_sequence", envList[0].protected_quadrants)
+            print(f"policy coeff: {policy.coeff}", param_noise)
             print(f"avg reward: {avg_reward}")
             print("rewards", [np.sum(res[1]) for res in results])
             print("budget left", [res[0]["budget_left"] for res in results])

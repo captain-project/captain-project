@@ -78,7 +78,7 @@ class PolicyNN(object):
         coeff_meta_features = state_monitor.get_thresholds(
             self._coeff[-self._num_meta_features :]
         )
-        # print("coeff_meta_features", coeff_meta_features)
+        # print("coeff_meta_features", coeff_meta_features, self._num_meta_features)
         if rich_state.budget_left < np.min(rich_state.protection_cost):
             """Skip monitoring if budget does not allow more protection"""
             probs = np.ones(len(rich_state.protection_cost)) / len(rich_state.protection_cost)
