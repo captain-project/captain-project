@@ -100,35 +100,35 @@ def computeEvolutionaryUpdate(
 
 def computeMCUpdate(
         results, epoch_coeff, param_noise, _, __, running_reward, verbose=0
-):
+    ):
     final_reward_list = []
     for res in results:
         final_reward_list.append(np.sum(res[1]))
 
-    if len(final_reward_list) > 1:
-        final_reward_updated = np.mean(final_reward_list[:int(np.round(len(final_reward_list) / 2))])
-        final_reward_reference = np.mean(final_reward_list[int(np.round(len(final_reward_list) / 2)):])
+    # if len(final_reward_list) > 1:
+    #     final_reward_updated = np.mean(final_reward_list[:int(np.round(len(final_reward_list) / 2))])
+    #     final_reward_reference = np.mean(final_reward_list[int(np.round(len(final_reward_list) / 2)):])
+    #     if verbose == 2:
+    #         print("final_reward_updated:", final_reward_updated)
+    #         print("final_reward_reference:", final_reward_reference)
+    #     if final_reward_updated >= final_reward_reference:
+    #         if verbose == 2:
+    #             print("accept", final_reward_updated, final_reward_list, final_reward_reference)
+    #         return epoch_coeff + param_noise[0], True, final_reward_updated
+    #     else:
+    #         if verbose == 2:
+    #             print("reject", final_reward_updated, final_reward_list, final_reward_reference)
+    #         return epoch_coeff, False, final_reward_reference # return to previous
+    # else:
+    final_reward = np.mean(final_reward_list)
+    if final_reward >= running_reward:
         if verbose == 2:
-            print("final_reward_updated:", final_reward_updated)
-            print("final_reward_reference:", final_reward_reference)
-        if final_reward_updated >= final_reward_reference:
-            if verbose == 2:
-                print("accept", final_reward_updated, final_reward_list, final_reward_reference)
-            return epoch_coeff + param_noise[0], True, final_reward_updated
-        else:
-            if verbose == 2:
-                print("reject", final_reward_updated, final_reward_list, final_reward_reference)
-            return epoch_coeff, False, final_reward_reference # return to previous
+            print("accept", final_reward, final_reward_list, running_reward)
+        return epoch_coeff + param_noise[0], True, final_reward
     else:
-        final_reward = np.mean(final_reward_list)
-        if final_reward >= running_reward:
-            if verbose == 2:
-                print("accept", final_reward, final_reward_list, running_reward)
-            return epoch_coeff + param_noise[0], True, final_reward
-        else:
-            if verbose == 2:
-                print("reject", final_reward, final_reward_list, running_reward)
-            return epoch_coeff, False, final_reward # return to previous
+        if verbose == 2:
+            print("reject", final_reward, final_reward_list, running_reward)
+        return epoch_coeff, False, final_reward # return to previous
 
 def getFinalStepAvgReward(results):
     avg_final_rew = 0
@@ -436,10 +436,10 @@ def runBatchGeneticStrategyRichPolicy(
 
 
         if batch_size > 1:  # parallelize
-            if mc_updates:
-                # half batch w/o prm update
-                param_noise[int(np.round(batch_size / 2)):, :] *= 0
-                # print(param_noise_tmp)
+            # if mc_updates:
+            #     # half batch w/o prm update
+            #     param_noise[int(np.round(batch_size / 2)):, :] *= 0
+            #     # print(param_noise_tmp)
             with ProcessPoolExecutor(max_workers=max_workers) as pool:
                 runnerInputList = [
                     EvolutionRunnerInput(env, policy, evolutionRunner, noise)
