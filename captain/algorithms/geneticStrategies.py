@@ -169,6 +169,7 @@ def runBatchGeneticStrategyRichPolicy(
     running_reward_start=-1000,
     eps_running_reward=0.5,
     sigma=1.0,
+    update_frac=1,
     use_protection_cost=0,
     wNN=None,
     n_NN_nodes=[4, 0],
@@ -411,7 +412,7 @@ def runBatchGeneticStrategyRichPolicy(
             param_noise = (
                 rs.normal(
                     0, 1, (batch_size, len(coeff_features) + num_meta_features)
-                ) * sigma
+                ) * sigma * rs.binomial(1, p=update_frac, size=(batch_size, len(coeff_features) + num_meta_features))
             )
             if verbose == 2:
                 print("param_noise", param_noise)
@@ -487,7 +488,7 @@ def runBatchGeneticStrategyRichPolicy(
             print("=======================================")
             print("protection_sequence", envList[0].protected_quadrants)
             print(f"policy coeff: {policy.coeff}", param_noise)
-            print(f"avg reward: {avg_reward}")
+            print(f"avg reward: {avg_reward} running reward: {running_reward}")
             print("rewards", [np.sum(res[1]) for res in results])
             print("budget left", [res[0]["budget_left"] for res in results])
             print("time last protect", [res[0]["time_last_protect"] for res in results])
@@ -558,6 +559,7 @@ def train_model(
     increase_temp=1 / 100,  # temperature = 10 after 1000 epochs
     lr=0.5,
     lr_adapt=0.01,
+    update_frac=1,
     wNN=None,
     running_reward_start=-1000,  # i.e. re-initialized at epoch 0,
     eps_running_reward=0.25,  # if eps=1 running_reward = last reward
@@ -629,6 +631,7 @@ def train_model(
         running_reward_start=running_reward_start,
         eps_running_reward=eps_running_reward,
         sigma=sigma,
+        update_frac=update_frac,
         use_protection_cost=protection_cost,
         rewardMode=rewardMode,
         wNN=wNN,
