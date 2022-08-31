@@ -1,4 +1,4 @@
-__version__ = "0.1.0"
+__version__ = "0.1.13"
 __citation__ = """
     Silvestro D, Goria S, Sterner T, Antonelli A. 
     Improving biodiversity protection through artificial intelligence
