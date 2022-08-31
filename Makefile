@@ -2,13 +2,13 @@
 
 build:
 	rm -rf dist
-	python -m build
+	hatch build
 
 publish-test:
-	python -m twine upload --repository testpypi dist/*
+	hatch publish -r test
 
 publish:
-	python -m twine upload --repository pypi dist/*
+	hatch publish
 
 local-install:
 	pip install -e .

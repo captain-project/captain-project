@@ -1,11 +1,11 @@
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "captain-project"
 description = "Conservation Area Prioritization Through Artificial INtelligence"
-license = { file = "LICENSE.md" }
+license = "CC-BY-NC-ND-4.0"
 authors = [
     { name = "Daniele Silvestro", email = "captain.project.team@gmail.com" },
 ]
@@ -17,6 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+    "seaborn == 0.11.2",
     "baltic == 0.1.6",
     "DendroPy == 4.5.2",
     "ffmpy == 0.3.0",
@@ -26,7 +27,6 @@ dependencies = [
     "pandas == 1.3.5",
     "PyPDF2 == 1.26.0",
     "scipy == 1.7.3",
-    "seaborn == 0.11.2",
 ]
 [project.optional-dependencies]
 numba = ["numba == 0.55.0"]
@@ -36,5 +36,5 @@ Home = "https://www.captain-project.net"
 Source = "https://github.com/captain-project/captain-project"
 Documentation = "https://github.com/captain-project/notebooks"
 
-[tool.setuptools.dynamic]
-version = { attr = "captain.__version__" }
+[tool.hatch.version]
+path = "captain/__init__.py"
