@@ -9,7 +9,7 @@ from ..agents.policy import PolicyNN, get_NN_model_prm
 from ..algorithms.marxan_setup import *
 from ..algorithms.env_setup import *
 from ..biodivsim.StateInitializer import print_update
-from .ConservationTargets import *
+from ..biodivsim.ConservationTargets import *
 np.set_printoptions(suppress=True, precision=3)
 
 """
@@ -111,7 +111,7 @@ class BioDivEnvEmpirical:
             self.sp_quadrant_list = self.get_sp_list_per_PU()
     
     def getProtectCostQuadrant(self):
-        return self._cost_protection
+        return self.protection_cost
     
     def _getInfo(self):
         info = {
