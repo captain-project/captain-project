@@ -15,8 +15,7 @@ from ..agents.state_monitor import (
 )
 import numpy as np
 
-np.set_printoptions(suppress=True)  # prints floats, no scientific notation
-np.set_printoptions(precision=3)  # rounds all array elements to 3rd digit
+np.set_printoptions(suppress=True, precision=3)  # prints floats, no scientific notation
 from ..biodivsim.StateInitializer import *
 from .reinforce import RichProtectActionAdaptor, RichStateAdaptor
 from ..agents.policy import PolicyNN, get_NN_model_prm

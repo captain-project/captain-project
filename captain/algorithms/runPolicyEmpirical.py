@@ -12,6 +12,7 @@ from ..algorithms.empirical_env_setup import *
 from ..biodivsim.ConservationTargets import *
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing.pool
+from ..biodivsim import ConservationTargets
 
 import collections
 np.set_printoptions(suppress=True, precision=3)
@@ -111,17 +112,21 @@ class EvolutionPredictEmpirical:
         _, lastObs = policy.probs(state, return_lastObs=True)
         return lastObs
 
-def launch_runner(env_list, policy, evolutionRunner, max_workers=None):
+def launch_runner(env_list, policy, evolutionRunner, max_workers):
     if len(env_list) == 1:
         r = EmpRunnerInput(env_list[0], policy, evolutionRunner)
         runEpisode(r)
-    else:
+    elif max_workers > 1:
         runnerInputList = [EmpRunnerInput(env, policy, evolutionRunner) for env in env_list]
-        if not max_workers:
-            max_workers = len(runnerInputList)
         with ProcessPoolExecutor(max_workers=max_workers) as pool:
             env_list = list(pool.map(runEpisode, runnerInputList))
-    
+    else:
+        env_list_tmp = []
+        for env in env_list:
+            r = EmpRunnerInput(env, policy, evolutionRunner)
+            _ = runEpisode(r)
+            # env_list_tmp.append(runEpisode(r))
+        # env_list = env_list_tmp
     return env_list
 
 def run_policy_empirical(
@@ -145,11 +150,15 @@ def run_policy_empirical(
         temperature=1,
         deterministic_policy=0,
         replicates=1,
-        max_workers=None
+        max_workers=1 # if None workers = n.replicates (currently not supported)
 ):
     if not conservation_target:
         # legacy default
         conservation_target = FractionConservationTarget(protect_fraction=protection_target)
+
+    if not max_workers:
+        max_workers = len(runnerInputList)
+
     # load systems
     env_list = []
     seed_list = []
@@ -170,8 +179,8 @@ def run_policy_empirical(
             env.set_sp_quadrant_list_only_once()
         # set conservation target
         env_rep.reset_dynamic_target(conservation_target)
-        if rep > 0:
-            # print output only from 1st run
+        if rep > 0 and max_workers > 1:
+            # print output only from 1st run (if running in parallel)
             env_rep.set_print_freq(np.Inf)
         
         # re-initialize species
@@ -202,7 +211,7 @@ def run_policy_empirical(
         print("\n\nResults saved as:", full_file_name)
         out_files.append(full_file_name)
     
-    if rep == 1:
+    if replicates == 1:
         env_list = env_list[0]
         out_files = out_files[0]
     return env_list, out_files

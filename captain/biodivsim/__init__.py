@@ -9,4 +9,5 @@
 #
 # from . import SimGrid
 # from .SimGrid import *
-#
+
+from . import ConservationTargets

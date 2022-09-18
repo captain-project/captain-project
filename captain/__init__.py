@@ -11,6 +11,7 @@ from . import algorithms
 from . import agents
 from .biodivinit import PhyloGenerator
 from .biodivinit import SimulatorInit
+from .biodivsim import ConservationTargets
 
 from .biodivsim.CellClass import *
 from .biodivsim.StateInitializer import *
@@ -26,3 +27,4 @@ from .plot.plot_env import *
 from .biodivsim.EmpiricalGrid import *
 from .algorithms.runPolicyEmpirical import *
 from .biodivsim.ConservationTargets import *
+from .plot.plot_empirical_env import *

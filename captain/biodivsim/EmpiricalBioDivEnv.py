@@ -9,6 +9,7 @@ from ..agents.policy import PolicyNN, get_NN_model_prm
 from ..algorithms.marxan_setup import *
 from ..algorithms.env_setup import *
 from ..biodivsim.StateInitializer import print_update
+from ..biodivsim import ConservationTargets
 from ..biodivsim.ConservationTargets import *
 np.set_printoptions(suppress=True, precision=3)
 

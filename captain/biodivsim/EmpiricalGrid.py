@@ -4,7 +4,7 @@ import sys
 
 from ..biodivsim.BioDivEnv import BioDivEnv, Action, ActionType, RunMode
 from ..agents.state_monitor import *
-
+from ..biodivsim import ConservationTargets
 # extract_features, get_feature_indx, get_thresholds, get_thresholds_reverse, get_quadrant_coord_species_clean
 import numpy as np
 import pandas as pd
