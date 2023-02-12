@@ -10,7 +10,6 @@ from ..algorithms.marxan_setup import *
 from ..algorithms.env_setup import *
 from ..biodivsim.StateInitializer import print_update
 from ..biodivsim import ConservationTargets
-from ..biodivsim.ConservationTargets import *
 np.set_printoptions(suppress=True, precision=3)
 
 """
@@ -76,7 +75,7 @@ class BioDivEnvEmpirical:
         self.static_system = True  # no changes in pop sizes, climate, disturbance -> no recurrent observe() needed
         self.starting_protection_matrix = starting_protection_matrix
         if not conservation_target:
-            self.reset_dynamic_target(FractionConservationTarget())
+            self.reset_dynamic_target(ConservationTargets.FractionConservationTarget())
         else:
             self.reset_dynamic_target(conservation_target)
 

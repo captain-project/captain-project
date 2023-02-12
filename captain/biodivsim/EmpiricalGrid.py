@@ -135,7 +135,10 @@ class EmpiricalGrid:
     def reset(self):
         self._protection_matrix = self._init_protection_matrix + 0
         self._counter = 0
-
+    
+    def reset_init_protection_matrix(self, p):
+        self._init_protection_matrix = p + 0
+        
     def randomize_grid(self):
         rnd_sequence = np.random.choice(
             range(self._n_pus), size=self._n_pus, replace=False

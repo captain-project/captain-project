@@ -11,3 +11,4 @@
 # from .SimGrid import *
 
 from . import ConservationTargets
+from .ConservationTargets import *
