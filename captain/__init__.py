@@ -1,8 +1,9 @@
-__version__ = "0.1.0"
+__version__ = "0.2.1"
 __citation__ = """
     Silvestro D, Goria S, Sterner T, Antonelli A. 
-    Improving biodiversity protection through artificial intelligence
-    (2021)
+    Improving biodiversity protection through artificial intelligence.
+    Nature sustainability (5), 415-424
+    https://doi.org/10.1038/s41893-022-00851-6
 """
 
 from . import biodivsim

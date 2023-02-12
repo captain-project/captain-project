@@ -148,7 +148,7 @@ def simulate_biodiv_env(
     n_cells = h.shape[1]
     n_species = h.shape[0]
     K_max = np.einsum("xyz -> yz", h)[0][0]
-    if growth_rates == None:
+    if growth_rates is None:
         growth_rates = np.ones(n_species)
 
     distb_obj, selectivedistb_obj = get_disturbance(disturbance_mode, seed=seed)

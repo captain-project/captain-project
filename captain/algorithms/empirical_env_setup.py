@@ -22,23 +22,24 @@ import pandas as pd
 
 
 def build_empirical_env(
-    wd="",
-    puvsp_file=None,
-    pu_file=None,
-    pu_info_file=None,
-    # fast loading files
-    hist_file=None,
-    puid_file=None,
-    spid_file=None,
-    budget=1,
-    protect_fraction=0.1,
-    max_disturbance=0.95,
-    observePolicy=2,
-    seed=1234,
-    species_sensitivities=None,
-    hist_out_file=None,
-    pu_id_out_file=None,
-    sp_id_out_file=None
+        wd="",
+        puvsp_file=None,
+        pu_file=None,
+        pu_info_file=None,
+        # fast loading files
+        hist_file=None,
+        puid_file=None,
+        spid_file=None,
+        budget=1,
+        protect_fraction=0.1,
+        max_disturbance=0.95,
+        observePolicy=2,
+        seed=1234,
+        species_sensitivities=None,
+        hist_out_file=None,
+        pu_id_out_file=None,
+        sp_id_out_file=None,
+        ignore_pu_status=True,
 ):
 
     emp = EmpiricalGrid(species_sensitivities=species_sensitivities)
@@ -75,6 +76,11 @@ def build_empirical_env(
                 cost_array[cost_array > 0]
             )  # 1% of the cheapest cell with a cost
         cost_array[cost_array == 0] = min_cost
+
+    if not ignore_pu_status:
+        status_array = np.array(cost_tbl["status"])[cost_tbl["id"].isin(emp._pus_id)]
+        p = status_array.reshape(emp._init_protection_matrix.shape)
+        emp.reset_init_protection_matrix(p)
 
     # rescale cost
     cost_array = cost_array / np.mean(cost_array)
