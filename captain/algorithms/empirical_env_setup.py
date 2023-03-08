@@ -126,8 +126,7 @@ def load_policy_empirical(
     ] = get_NN_model_prm(num_features, n_NN_nodes, num_output)
     coeff_meta_features = get_thresholds_reverse(loadedW[-num_meta_features:])
     ind = [head.index(s) for s in head if "coeff_" in s]
-    coeff_features = loadedW[np.min(ind) :]  # remove first columns
-
+    coeff_features = loadedW[np.min(ind) : -num_meta_features]  # remove first columns
     num_features = len(get_feature_indx(mode=obsMode))
     # model_prm = [coeff_features, coeff_meta_features]
 
