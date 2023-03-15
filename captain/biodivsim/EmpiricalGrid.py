@@ -8,6 +8,9 @@ from ..biodivsim import ConservationTargets
 # extract_features, get_feature_indx, get_thresholds, get_thresholds_reverse, get_quadrant_coord_species_clean
 import numpy as np
 import pandas as pd
+from numpy.random import MT19937
+from numpy.random import RandomState, SeedSequence
+
 
 np.set_printoptions(suppress=True)  # prints floats, no scientific notation
 np.set_printoptions(precision=3)  # rounds all array elements to 3rd digit
@@ -198,17 +201,19 @@ class EmpiricalGrid:
 
     def subsample_sp_h(self, disturbance_matrix, seed=0):
         if seed:
-            np.random.seed(seed)
+            rs = RandomState(MT19937(SeedSequence(seed)))
+        else:
+            rs = RandomState(MT19937(SeedSequence()))
         if self._species_sensitivities is not None:
             species_sensitivity = self._species_sensitivities
         else:
-            species_sensitivity = np.random.random(self._n_species)
+            species_sensitivity = rs.random(self._n_species)
         disturbance_effect_sp = np.repeat(disturbance_matrix, self._h.shape[0]).reshape(
             (self._h.shape[1], self._h.shape[0])
         )
         p = 1 - disturbance_effect_sp * species_sensitivity  # prob of sampling
         # print(p)
-        x = np.random.binomial(1, p.T)
+        x = rs.binomial(1, p.T)
         a = self._h_initial[:, :, 0] * x
         a = a.reshape(self._h_initial.shape)
 
@@ -216,7 +221,7 @@ class EmpiricalGrid:
         for spp in a:
             if sum(spp)==0:
                 pu_w_spp_present = list(np.where(self._h_initial[idx, :, 0] > 0)[0])
-                random_pu = random.choice(pu_w_spp_present)
+                random_pu = rs.choice(pu_w_spp_present)
                 a[idx,random_pu,0] += 1
             idx += 1
 
