@@ -62,13 +62,21 @@ class EmpiricalGrid:
         self._counter = 0
         if hist_file is None:
             print("Reading file...")
-            occs = np.loadtxt(puvsp_file, skiprows=1, delimiter=",")
+            occs = np.loadtxt(puvsp_file, skiprows=1, delimiter=",", ndmin=2)
+            "id,cost,status,prob"
             "species,pu,amount"
             self._species_id = np.unique(occs[:, 0]).astype(int)
             self._n_species = len(self._species_id)
             self._species_id_indx = np.arange(self._n_species)
-            self._pus_id = np.unique(occs[:, 1]).astype(int)
-            self._n_pus = len(np.unique(occs[:, 1]))
+            # not all sites have species, but might have other values we want to consider
+            if pu_id_file is not None:
+                sites = np.loadtxt(pu_id_file, skiprows=1, delimiter=",", ndmin=2)
+                self._pus_id = np.unique(sites[:, 0]).astype(int)#np.unique(occs[:, 1]).astype(int)
+                self._n_pus = len(np.unique(sites[:, 0]))#len(np.unique(occs[:, 1]))
+            else:
+                self._pus_id = np.unique(occs[:, 1]).astype(int)
+                self._n_pus = len(np.unique(occs[:, 1]))
+
             self.length = np.sqrt(self._n_pus)  # <- n_cells expected to be length^2
             self._pus_id_ind = np.arange(self._n_pus)
             # init 3D sp histogram
@@ -218,7 +226,7 @@ class EmpiricalGrid:
         a = a.reshape(self._h_initial.shape)
 
         idx=0
-        for spp in a:
+        for spp in a: # avoid species initialized as extinct
             if sum(spp)==0:
                 pu_w_spp_present = list(np.where(self._h_initial[idx, :, 0] > 0)[0])
                 random_pu = rs.choice(pu_w_spp_present)

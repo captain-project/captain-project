@@ -75,17 +75,29 @@ class EvolutionPredictEmpirical:
         # force remove already protected units
         probs += 1e-20
         probs[state["protection_matrix"][:, 0] == 1] = 0
-        # force remove too expensive units
-        if self.drop_unaffordable:
-            probs[state["protection_cost"] > info["budget_left"]] = 0
-            probs = probs / np.sum(probs)
-        
-        if self._deterministic_policy:
-            action = np.argmax(probs)
+
+        # no action if no PU cost less then budget:
+        if np.min(state["protection_cost"][probs > 0]) > info["budget_left"]:
+            # print("Finished budget.")
+            # print("Cheapest PU:", np.min(state["protection_cost"]), "Budget left:", info["budget_left"])
+            return None # action = None -> no action
         else:
-            action = np.random.choice(policy.num_output, 1, p=probs)[0]
-        # in this case cellList[action] == action (see getRichProtectAction)
-        return Action(ActionType.Protect, action, action)
+            # force remove too expensive units
+            if self.drop_unaffordable:
+                probs[state["protection_cost"] > info["budget_left"]] = 0
+                probs = probs / np.sum(probs)
+
+            if self._deterministic_policy:
+                action = np.argmax(probs)
+            else:
+                try:
+                    action = np.random.choice(policy.num_output, 1, p=probs)[0]
+                except:
+                    print(probs)
+                    print(np.sum(probs))
+                    print(info)
+            # in this case cellList[action] == action (see getRichProtectAction)
+            return Action(ActionType.Protect, action, action)
     
     def run_episode(self, env, policy):
         del self._rewards[:]
@@ -136,6 +148,7 @@ def run_policy_empirical(
         observePolicy=2,
         n_nodes=[8, 0],
         budget=None,
+        relative_budget=True,
         protection_target=0.1,
         conservation_target=None, # object of class: ConservationTarget
         n_steps=25,
@@ -167,7 +180,9 @@ def run_policy_empirical(
     for rep in range(replicates):
         env_rep = copy.deepcopy(env)
         # update env settings based on run settings
-        env_rep.set_budget(budget)
+        if budget > 1:
+            relative_budget = False
+        env_rep.set_budget(budget, relative_budget=relative_budget)
         env_rep.set_stopping_mode(n_steps, stop_at_end_budget, stop_at_target_met)
         runMode = [RunMode.NOUPDATEOBS, RunMode.ORACLE, RunMode.PROTECTATONCE][
             observePolicy

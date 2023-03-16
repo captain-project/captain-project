@@ -40,6 +40,8 @@ def build_empirical_env(
         pu_id_out_file=None,
         sp_id_out_file=None,
         ignore_pu_status=True,
+        rescale_cost=True,
+
 ):
 
     emp = EmpiricalGrid(species_sensitivities=species_sensitivities)
@@ -83,11 +85,20 @@ def build_empirical_env(
         emp.reset_init_protection_matrix(p)
 
     # rescale cost
-    cost_array = cost_array / np.mean(cost_array)
-    total_cost = np.sum(cost_array)
-    # set a budget sufficient to protect 10% of cheapest PUs
-    budget = budget * (np.min(cost_array) * emp._n_pus)
-    disturbance_matrix = max_disturbance * cost_array / np.max(cost_array)
+    # if we want the budget to be a fraction:
+    if rescale_cost:
+        cost_array = cost_array / np.mean(cost_array)
+        # total_cost = np.sum(cost_array)
+        # set a budget sufficient to protect 10% of cheapest PUs
+        budget = budget * (np.min(cost_array) * emp._n_pus)
+    # else the budget will be in dollars or whatever unit the manager wants
+
+    if "disturbance" in cost_tbl.columns:
+        disturbance_array = np.array(cost_tbl["disturbance"])[cost_tbl["id"].isin(emp._pus_id)]
+        disturbance_matrix = max_disturbance * disturbance_array / np.max(disturbance_array)
+    else:
+        disturbance_matrix = max_disturbance * cost_array / np.max(cost_array)
+
     emp.set_disturbance_matrix(disturbance_matrix)
     runMode = [RunMode.NOUPDATEOBS, RunMode.ORACLE, RunMode.PROTECTATONCE][
         observePolicy

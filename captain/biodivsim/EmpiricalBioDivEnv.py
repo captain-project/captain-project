@@ -154,7 +154,7 @@ class BioDivEnvEmpirical:
         return richObs, reward, done, info
     
     def step(self, action=None):
-        if action == None:
+        if action is None:
             action = self._default_action
         self.bioDivGrid.step()
         
@@ -217,6 +217,8 @@ class BioDivEnvEmpirical:
         state = self._enrichObs()
         # flag it done when it reaches the # of iterations or end budget
         if self._stop_at_end_budget:
+            self._min_protection_cost = np.min(np.delete(self.protection_cost,
+                                                         np.array(self.protection_sequence).astype(int)))
             done = self.budget < self._min_protection_cost
         elif self._stop_at_target_met:
             done = self.get_species_met_target() == self.bioDivGrid._n_species
