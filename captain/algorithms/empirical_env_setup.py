@@ -87,7 +87,13 @@ def build_empirical_env(
     total_cost = np.sum(cost_array)
     # set a budget sufficient to protect 10% of cheapest PUs
     budget = budget * (np.min(cost_array) * emp._n_pus)
-    disturbance_matrix = max_disturbance * cost_array / np.max(cost_array)
+    if "disturbance" in cost_tbl.columns:
+        disturbance_array = np.array(cost_tbl["disturbance"])[cost_tbl["id"].isin(emp._pus_id)]
+        disturbance_matrix = max_disturbance * disturbance_array / np.max(disturbance_array)
+    else:
+        disturbance_matrix = max_disturbance * cost_array / np.max(cost_array)
+
+    # disturbance_matrix = max_disturbance * cost_array / np.max(cost_array)
     emp.set_disturbance_matrix(disturbance_matrix)
     runMode = [RunMode.NOUPDATEOBS, RunMode.ORACLE, RunMode.PROTECTATONCE][
         observePolicy
