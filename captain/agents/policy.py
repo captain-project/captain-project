@@ -3,6 +3,8 @@ import numpy as np
 import scipy
 from ..agents import state_monitor as state_monitor
 
+DEBUG = 0
+
 
 class PolicyNN(object):
     def __init__(
@@ -118,6 +120,9 @@ class PolicyNN(object):
                 coeff_policy = self._coeff[: -self._num_meta_features]
             else:
                 coeff_policy = self._coeff
+            if DEBUG:
+                print("coeff_policy in policy_NN", coeff_policy, self._num_meta_features)
+                print("self._coeff", self._coeff, "\n")
             internal_state = state[:, :]
 
             if self._fully_connected > 0:
@@ -140,8 +145,13 @@ class PolicyNN(object):
                     tmp = coeff_policy[: self._num_features * self._nodes_l1]
                     weights_l1 = tmp + 0
                     tmp_coeff = weights_l1.reshape(self._num_features, self._nodes_l1)
-
                     weights_l3 = coeff_policy[-(self._nodes_l3) :]
+                    if DEBUG:
+                        print("coeff_policy 2D", tmp_coeff)
+                        print("weights_l3", weights_l3, weights_l3.shape)
+                    # sys.exit("done")
+
+
 
                 z1 = np.einsum("nf, fi->ni", internal_state, tmp_coeff)
                 z1 = self._act_function(z1)
@@ -159,7 +169,10 @@ class PolicyNN(object):
                     probs = probs ** self._temperature
                     probs /= np.sum(probs)
                 """
+            # set to min prob probs of already protected units
+            h2[internal_state[:, -1] == 1] = np.min(h2)
             probs = scipy.special.softmax(h2)
+            # print("SOFTMAX PROBS", np.sort(probs)[::-1])
             # set to 0 probs of already protected units
             probs[internal_state[:, -1] == 1] = 0
             if np.sum(probs) < 1e-20:

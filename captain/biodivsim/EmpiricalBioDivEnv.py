@@ -22,7 +22,7 @@ grid_obj.geoRangePerSpecies()
 grid_obj._climate_layer <- can default to []
 grid_obj._climate_as_disturbance <- can default to 0
 """
-
+DEBUG = 0
 class BioDivEnvEmpirical:
     def __init__(
             self,
@@ -173,8 +173,9 @@ class BioDivEnvEmpirical:
                     self.bioDivGrid._counter = self.iterations
             # protect unit
             if self.protection_cost[action.value] <= self.budget:
-                # print("PROTECT!", action.value)
+                # print("PROTECT!", action.value, self.protection_cost[action.value], self.budget)
                 self.budget -= self.protection_cost[action.value]
+                # print("done!", action.value, self.protection_cost[action.value], self.budget)
                 self.bioDivGrid.update_protection_matrix(indx=action.value)
                 
                 if self.drop_unaffordable:
@@ -200,20 +201,33 @@ class BioDivEnvEmpirical:
             action_cost = 0
             if action.actionType == ActionType.Protect:
                 action_cost = self.protection_cost[action.value]
-            
-            print_update(
-                "%s – selected PU: %s " % (self.bioDivGrid._counter, action.value) +
-                "n. PUs: %s " % (int(np.sum(self.bioDivGrid.protection_matrix))) +
-                # "cost:", np.round(action_cost, 2),
-                "budget (%):" + " %s " % (np.round(self.budget / self._initialBudget * 100, 2)) +
-                "Current target: %s (%s - %s) "
-                % (np.round(np.median(self.min_pop_requirement), 1),
-                   np.round(np.min(self.min_pop_requirement), 1),
-                   np.round(np.max(self.min_pop_requirement), 1)) +
-                "met in %s sp." % len(self._sp_target_met)
-                # TODO: log this to output file
-            )
-        
+
+            if DEBUG:
+                print(
+                    "%s – selected PU: %s " % (self.bioDivGrid._counter, action.value) +
+                    "n. PUs: %s " % (int(np.sum(self.bioDivGrid.protection_matrix))) +
+                    "cost:", np.round(action_cost, 2),
+                    "budget (%):" + " %s %s " % (np.round(self.budget / self._initialBudget * 100, 2), np.round(self.budget)) +
+                    "Current target: %s (%s - %s) "
+                    % (np.round(np.median(self.min_pop_requirement), 1),
+                       np.round(np.min(self.min_pop_requirement), 1),
+                       np.round(np.max(self.min_pop_requirement), 1)) +
+                    "met in %s sp." % len(self._sp_target_met)
+                    # TODO: log this to output file
+                )
+            else:
+                print_update(
+                    "%s – selected PU: %s " % (self.bioDivGrid._counter, action.value) +
+                    "n. PUs: %s " % (int(np.sum(self.bioDivGrid.protection_matrix))) +
+                    "budget (%):" + " %s " % (np.round(self.budget / self._initialBudget * 100, 2)) +
+                    "Current target: %s (%s - %s) "
+                    % (np.round(np.median(self.min_pop_requirement), 1),
+                       np.round(np.min(self.min_pop_requirement), 1),
+                       np.round(np.max(self.min_pop_requirement), 1)) +
+                    "met in %s sp." % len(self._sp_target_met)
+                    # TODO: log this to output file
+                )
+
         state = self._enrichObs()
         # flag it done when it reaches the # of iterations or end budget
         if self._stop_at_end_budget:

@@ -19,6 +19,8 @@ np.set_printoptions(suppress=True, precision=3)
 
 EmpRunnerInput = collections.namedtuple("EmpRunnerInput", ("env", "policy", "runner"))
 
+DEBUG = False
+
 def runEpisode(runnerInput):
     env = runnerInput.env
     policy = runnerInput.policy
@@ -72,6 +74,10 @@ class EvolutionPredictEmpirical:
     def select_action(self, state, info, policy, lastObs=None):
         adapted_state = self._state_adaptor.adapt(state, info)
         probs = policy.probs(adapted_state, lastObs=lastObs)
+        if DEBUG:
+            sorted_prob = np.sort(probs)[::-1][:10]
+            print("POLICY PROBS: ", sorted_prob[:10], sorted_prob[0], sorted_prob[1], np.sum(probs))
+
         # force remove already protected units
         probs += 1e-20
         probs[state["protection_matrix"][:, 0] == 1] = 0
@@ -85,8 +91,12 @@ class EvolutionPredictEmpirical:
             # force remove too expensive units
             if self.drop_unaffordable:
                 probs[state["protection_cost"] > info["budget_left"]] = 0
-                probs = probs / np.sum(probs)
 
+            probs = probs / np.sum(probs)
+
+            if DEBUG:
+                sorted_prob = np.sort(probs)[::-1][:10]
+                print("PROBS: ", sorted_prob[:10], sorted_prob[0], sorted_prob[1], np.sum(probs))
             if self._deterministic_policy:
                 action = np.argmax(probs)
             else:
