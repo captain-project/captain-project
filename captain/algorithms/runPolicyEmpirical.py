@@ -122,8 +122,11 @@ class EvolutionPredictEmpirical:
                 env.set_lastObs(updated_features)
             lastObs = env.lastObs
             action = self.select_action(state, info, policy, lastObs=lastObs)
-            state, reward, done, info = env.step(action)
-            counter += 1
+            if action is None:
+                done = 1
+            else:
+                state, reward, done, info = env.step(action)
+                counter += 1
             if done:
                 break
     
