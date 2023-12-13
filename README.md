@@ -6,6 +6,8 @@ The CAPTAIN method is described in [this paper](https://www.nature.com/articles/
 
 Jupyter notebooks demonstrating the main functionality of the library are [available here](https://github.com/captain-project/notebooks).
 
+the latest version is available on the [dev branch](https://github.com/captain-project/captain-project/tree/dev). 
+
 ## License
 
 This software is licensed jointly by Daniele Silvestro, Stefano Goria, Thomas Sterner, and Alexandre Antonelli on the Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International Public License terms and conditions set forth in [LICENSE.md](LICENSE.md). By downloading the software, you are agreeing to the terms and conditions.
