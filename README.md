@@ -5,8 +5,7 @@
 The CAPTAIN method is described in [this paper](https://www.nature.com/articles/s41893-022-00851-6) and released under [this license](https://github.com/captain-project/captain-project/blob/main/LICENSE.md).
 
 Jupyter notebooks demonstrating the main functionality of the library are [available here](https://github.com/captain-project/notebooks).
-
-the latest version is available on the [dev branch](https://github.com/captain-project/captain-project/tree/dev). 
+The latest version of CAPTAIN is available on the [dev branch](https://github.com/captain-project/captain-project/tree/dev). 
 
 ## License
 
