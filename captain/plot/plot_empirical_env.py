@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from _collections_abc import Iterable
 
-def summarize_policy_empirical(env_list):
+def summarize_policy_empirical(env_list, use_ccordinates=True):
     if isinstance(env_list, Iterable):
         pass
     else:
@@ -17,7 +17,7 @@ def summarize_policy_empirical(env_list):
     comb_output /= len(env_list)
     
     # add coordinates to output, if available
-    if env_list[0].bioDivGrid.coords is not None:
+    if env_list[0].bioDivGrid.coords is not None and use_ccordinates:
         puid = env_list[0].bioDivGrid.coords['PUID'].to_numpy()
         included_pus = [i for i in range(len(puid)) if puid[i] in res.bioDivGrid._pus_id]
         lon = env_list[0].bioDivGrid.coords['Coord_x'].to_numpy()[included_pus]
